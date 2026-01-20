@@ -89,27 +89,19 @@
             width: 100%;
             height: 100vh;
             border: none;
-            display: none;
         }
     </style>
 </head>
 <body>
 
     <iframe 
-        id="appFrame"
         src="https://script.google.com/macros/s/AKfycbwXIiCvvcmHsW6Wvn7UXt6iKZhVy7oYGy3zu4q7oCR7uiudRysUhX5PKe2QhNvwbUdN/exec" 
         allow="camera; microphone; display-capture; clipboard-read; clipboard-write;"
         allowfullscreen>
     </iframe>
 
     <script>
-        function reloadIframe() {
-            const iframe = document.getElementById('appFrame');
-            const overlay = document.getElementById('login-overlay');
-            iframe.src = iframe.src; 
-            overlay.style.display = 'none';
-            iframe.style.display = 'block';
-        }
+
     </script>
 </body>
 </html>
