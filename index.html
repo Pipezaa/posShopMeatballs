@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, user-scalable=no">
-    <title>POS Shop Meatballs</title>
+    <title>POS System Chaisiri</title>
     <style>
         body, html {
             margin: 0;
@@ -30,6 +30,7 @@
             z-index: 10;
             overflow-y: auto;
             padding-bottom: 50px;
+            display: none;
         }
         .container {
             text-align: center;
@@ -89,19 +90,69 @@
             width: 100%;
             height: 100vh;
             border: none;
+            
         }
     </style>
 </head>
 <body>
 
+    <div id="login-overlay">
+        <div class="container">
+            <div class="msg">
+                <h2 style="color: #202124;">POS Chaisiri</h2>
+                <p>หากหน้าจอไม่โหลดหรือติดหน้า Login<br>กรุณาทำตามขั้นตอนด้านล่าง</p>
+            </div>
+            
+            <a href="https://script.google.com/macros/s/AKfycbzuAoteT9I7knF_PwtVNmlwKM5v0ultveceBmgSLikbqge1VWrWhALllbJP-U9Bs0yJZg/exec" 
+               target="_blank" class="btn-open">
+                1. ลงชื่อเข้าใช้ (เปิดแท็บใหม่)
+            </a>
+
+            <button onclick="reloadIframe()" class="btn-refresh">
+                2. ตรวจสอบสถานะและเข้าใช้งาน
+            </button>
+
+            <!-- คำแนะนำสำหรับมือถือ -->
+            <div class="instruction-card">
+                <h3>📱 วิธีตั้งค่าสำหรับมือถือ</h3>
+                
+                <div class="step">
+                    <strong>สำหรับ Android (Chrome):</strong><br>
+                    1. กดปุ่ม <b>จุด 3 จุด</b> มุมขวาบน<br>
+                    2. เลือก <b>การตั้งค่า</b> > <b>การตั้งค่าเว็บไซต์</b><br>
+                    3. เลือก <b>คุกกี้</b> และเลือก <b>"อนุญาตคุกกี้บุคคลที่สาม"</b>
+                </div>
+
+                <div class="step">
+                    <strong>สำหรับ iPhone (Safari):</strong><br>
+                    1. ไปที่ <b>การตั้งค่า (Settings)</b> ของเครื่อง iPhone<br>
+                    2. เลือก <b>Safari</b><br>
+                    3. ปิดเมนู <b>"ป้องกันการติดตามข้ามไซต์" (Prevent Cross-Site Tracking)</b><br>
+                    4. ปิดเมนู <b>"บล็อกคุกกี้ทั้งหมด" (Block All Cookies)</b>
+                </div>
+
+                <p style="color: #666; font-style: italic; font-size: 12px; margin-top: 15px;">
+                    *หมายเหตุ: หลังจากตั้งค่าแล้ว ให้ปิดเบราว์เซอร์แล้วเข้าใหม่อีกครั้ง
+                </p>
+            </div>
+        </div>
+    </div>
+
     <iframe 
+        id="appFrame"
         src="https://script.google.com/macros/s/AKfycbwXIiCvvcmHsW6Wvn7UXt6iKZhVy7oYGy3zu4q7oCR7uiudRysUhX5PKe2QhNvwbUdN/exec" 
         allow="camera; microphone; display-capture; clipboard-read; clipboard-write;"
         allowfullscreen>
     </iframe>
 
     <script>
-
+        function reloadIframe() {
+            const iframe = document.getElementById('appFrame');
+            const overlay = document.getElementById('login-overlay');
+            iframe.src = iframe.src; 
+            overlay.style.display = 'none';
+            iframe.style.display = 'block';
+        }
     </script>
 </body>
 </html>
