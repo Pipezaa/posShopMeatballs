@@ -8,15 +8,14 @@
     <!-- Viewport สำหรับ PWA และรองรับ Notch (รอยบาก) -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
-    <title>POS System Chaisiri</title>
+    <title>POS System Meetball</title>
 
     <!-- PWA & Mobile Meta Tags -->
-    <!-- ปรับ theme-color ให้ตรงกับสีแถบด้านบนของแอป (สีน้ำเงินเข้ม) เพื่อความกลมกลืน -->
-    <meta name="theme-color" content="#212c3b">
+    <meta name="theme-color" content="#f4f7f6">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <!-- ใช้ black-translucent เพื่อให้แอปดูเต็มจอและกลืนกับสีพื้นหลังมากที่สุด -->
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"> 
+    <!-- เปลี่ยนจาก black-translucent เป็น default หรือ black เพื่อไม่ให้หน้าเว็บไหลเข้าไปใต้ Status Bar มากเกินไปจนเพี้ยน -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black"> 
     <meta name="apple-mobile-web-app-title" content="POS Chaisiri">
     
     <!-- Icons -->
@@ -34,13 +33,10 @@
             padding: 0;
             width: 100%;
             height: 100%;
-            
-            /* เปลี่ยนสีพื้นหลังให้กลืนกับแถบด้านบนของแอป (สีน้ำเงินเข้ม) */
-            background-color: #212c3b; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #212c3b;
             overflow: hidden; /* ล็อคไม่ให้ดึงหน้าเว็บหลักได้ */
-            
-            /* ป้องกันการเด้ง (Rubber-band effect) บน iOS ให้เหมือนแอป Native */
-            overscroll-behavior: none;
+            position: fixed; /* ช่วยแก้บั๊กการเลื่อนบางประการบน iOS */
             touch-action: none;
         }
 
@@ -120,31 +116,22 @@
             0%, 100% { opacity: 0.5; }
             50% { opacity: 1; }
         }
-
-        /* ขึง iframe ให้เต็มหน้าจอ */
+        
+        /* ขึง iframe ให้เต็มหน้าจอแบบแน่นอน */
         iframe {
             position: absolute;
             top: 0;
             left: 0;
-            display: block;
             width: 100%;
-            /* ความสูงจะถูกกำหนดด้วย JavaScript (window.innerHeight) */
+            height: 100%; /* จะถูกควบคุมด้วย JavaScript อีกทีเพื่อความชัวร์ */
             border: none;
             box-sizing: border-box;
-            background-color: transparent; 
-            
-            /* เว้นพื้นที่แค่ด้านบน (สำหรับรอยบาก iPhone) ซ้าย และขวา */
-            padding-top: env(safe-area-inset-top);
-            padding-left: env(safe-area-inset-left);
-            padding-right: env(safe-area-inset-right);
-            
-            /* 🌟 บังคับไม่ให้เว้นขอบล่าง ปล่อยให้ iframe ทะลุลงไปสุดหน้าจอ 🌟 */
-            padding-bottom: 0; 
+            background-color: transparent;
         }
     </style>
 </head>
 <body>
-
+    
     <!-- เพิ่ม Loading Screen แบบใหม่เข้ามา -->
     <div id="loader">
         <!-- 🌟 เรียกใช้ไฟล์รูปไอคอนของคุณ ถ้าไม่มีรูปมันจะซ่อนตัวเองอัตโนมัติ -->
@@ -157,7 +144,7 @@
         </div>
         <div class="loading-text">กำลังโหลดระบบ...</div>
     </div>
-
+    
     <!-- iframe ที่จะใช้ฝัง App Script ของเรา -->
     <iframe id="app-iframe" src="" allow="camera; microphone; display-capture; clipboard-read; clipboard-write; geolocation" allowfullscreen></iframe>
 
@@ -168,16 +155,23 @@
         const iframe = document.getElementById('app-iframe');
         const params = window.location.search;
         const iframeSrc = APPS_SCRIPT_URL + params;
-        
-        // 🌟 นำระบบ JS คำนวณความสูงกลับมาใช้ เพื่อบังคับให้เต็มจอด้านล่างสุด
+        iframe.src = iframeSrc;
+
+        // ฟังก์ชันสำคัญ: ปรับความสูงของ iframe ให้เท่ากับพื้นที่ที่มองเห็นได้จริงๆ (แก้ปัญหาโดนบัง/แถบล่างหาย)
         function resizeIframe() {
-            // ใช้ window.innerHeight เพื่อให้ได้ความสูงที่แท้จริงของหน้าจอ
             iframe.style.height = window.innerHeight + 'px';
         }
-        
-        // เรียกใช้ตอนเปิดหน้าเว็บ และเมื่อมีการเปลี่ยนขนาดหน้าจอ (หมุนเครื่อง)
+
+        // สั่งให้ทำงานตอนเปิดเว็บครั้งแรก
+        resizeIframe();
+
+        // สั่งให้ทำงานทุกครั้งที่มีการหมุนจอ หรือซ่อน/โชว์ Address bar
         window.addEventListener('resize', resizeIframe);
-        resizeIframe(); // เรียกทำงานครั้งแรกทันที
+        // สำหรับ iOS ป้องกันบั๊กตอนสลับแอป
+        window.addEventListener('orientationchange', function() {
+            setTimeout(resizeIframe, 100);
+        });
+
 
         // ฟังก์ชันสำหรับซ่อนหน้าจอโหลด
         function hideLoader() {
@@ -198,7 +192,6 @@
         setTimeout(hideLoader, 12000); 
 
         iframe.src = iframeSrc;
-
     </script>
 </body>
 </html>
