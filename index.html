@@ -33,10 +33,13 @@
             margin: 0;
             padding: 0;
             width: 100%;
-            /* ใช้ dvh เพื่อปรับขนาดตาม Address bar ของมือถือแบบไดนามิก */
-            height: 100dvh; 
-            /* Fallback สำหรับ iOS เวอร์ชั่นเก่าๆ */
-            min-height: -webkit-fill-available;
+            /* 🌟 แก้ปัญหาโหมด App บน iOS: ใช้ height 100% ร่วมกับ position fixed เพื่อขึงให้สุดขอบจอแน่นอน */
+            height: 100%; 
+            position: fixed; 
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             
             /* เปลี่ยนสีพื้นหลังให้กลืนกับแถบด้านบนของแอป (สีน้ำเงินเข้ม) */
             background-color: #212c3b; 
@@ -131,7 +134,14 @@
             height: 100%; 
             border: none;
             box-sizing: border-box;
-            background-color: #f4f7f6; /* สีพื้นหลังเดิมของแอปลงมาไว้ที่นี่แทน */
+            /* 🌟 ปรับให้โปร่งใส เพื่อให้ขอบบน(รอยบาก) และขอบล่าง เป็นสีน้ำเงินเข้มเหมือนกันทั้งหมด */
+            background-color: transparent; 
+            
+            /* ป้องกันรอยบาก (Notch) และขอบมนของ iPhone ทับเนื้อหาใน iframe */
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
         }
     </style>
 </head>
