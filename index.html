@@ -65,6 +65,21 @@
             transition: opacity 0.5s ease;
         }
 
+        /* 🌟 โลโก้แอปในหน้าโหลดดิ้ง */
+        .loader-logo {
+            width: 90px;
+            height: 90px;
+            margin-bottom: 25px;
+            border-radius: 20px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            animation: pulseLogo 2s infinite ease-in-out;
+        }
+
+        @keyframes pulseLogo {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
         /* Animation แบบใหม่: จุดกระโดด 3 จุด (Bouncing Dots) */
         .loader-dots {
             display: flex;
@@ -130,6 +145,9 @@
 
     <!-- เพิ่ม Loading Screen แบบใหม่เข้ามา -->
     <div id="loader">
+        <!-- 🌟 เรียกใช้ไฟล์รูปไอคอนของคุณ ถ้าไม่มีรูปมันจะซ่อนตัวเองอัตโนมัติ -->
+        <img src="icon-192x192.png" alt="POS Logo" class="loader-logo" onerror="this.style.display='none'">
+        
         <div class="loader-dots">
             <div></div>
             <div></div>
@@ -149,16 +167,23 @@
         const params = window.location.search;
         const iframeSrc = APPS_SCRIPT_URL + params;
         
-        // เมื่อ iframe โหลด App Script เสร็จสมบูรณ์ ให้ซ่อนหน้าจอ Loading
-        iframe.onload = function() {
+        // ฟังก์ชันสำหรับซ่อนหน้าจอโหลด
+        function hideLoader() {
             const loader = document.getElementById('loader');
-            if (loader) {
+            if (loader && loader.style.display !== 'none') {
                 loader.style.opacity = '0'; // ค่อยๆ จางหายไป
                 setTimeout(() => {
                     loader.style.display = 'none'; // เอาออกจากหน้าจอหลังจาก 0.5 วินาที
                 }, 500);
             }
-        };
+        }
+
+        // 1. เมื่อ iframe โหลด App Script เสร็จสมบูรณ์ ให้ซ่อนหน้าจอ Loading
+        iframe.onload = hideLoader;
+
+        // 🌟 2. ระบบกันค้าง (Fallback Timeout): 
+        // หากเน็ตช้ามากๆ หรือมีปัญหาเกิน 12 วินาที ให้บังคับปิดหน้าจอโหลดไปเลย ผู้ใช้จะได้ไม่ค้าง
+        setTimeout(hideLoader, 12000); 
 
         iframe.src = iframeSrc;
 
