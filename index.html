@@ -192,6 +192,16 @@
 
         iframe.src = iframeSrc;
 
+        // สั่งให้ทำงานตอนเปิดเว็บครั้งแรก
+        resizeIframe();
+
+        // สั่งให้ทำงานทุกครั้งที่มีการหมุนจอ หรือซ่อน/โชว์ Address bar
+        window.addEventListener('resize', resizeIframe);
+        // สำหรับ iOS ป้องกันบั๊กตอนสลับแอป
+        window.addEventListener('orientationchange', function() {
+            setTimeout(resizeIframe, 100);
+        });
+
     </script>
 </body>
 </html>
