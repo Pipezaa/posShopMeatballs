@@ -33,13 +33,7 @@
             margin: 0;
             padding: 0;
             width: 100%;
-            /* 🌟 แก้ปัญหาโหมด App บน iOS: ใช้ height 100% ร่วมกับ position fixed เพื่อขึงให้สุดขอบจอแน่นอน */
-            height: 100%; 
-            position: fixed; 
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            height: 100%;
             
             /* เปลี่ยนสีพื้นหลังให้กลืนกับแถบด้านบนของแอป (สีน้ำเงินเข้ม) */
             background-color: #212c3b; 
@@ -129,9 +123,12 @@
 
         /* ขึง iframe ให้เต็มหน้าจอ */
         iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
             display: block;
             width: 100%;
-            height: 100%; 
+            /* ความสูงจะถูกกำหนดด้วย JavaScript (window.innerHeight) */
             border: none;
             box-sizing: border-box;
             background-color: transparent; 
@@ -172,6 +169,16 @@
         const params = window.location.search;
         const iframeSrc = APPS_SCRIPT_URL + params;
         
+        // 🌟 นำระบบ JS คำนวณความสูงกลับมาใช้ เพื่อบังคับให้เต็มจอด้านล่างสุด
+        function resizeIframe() {
+            // ใช้ window.innerHeight เพื่อให้ได้ความสูงที่แท้จริงของหน้าจอ
+            iframe.style.height = window.innerHeight + 'px';
+        }
+        
+        // เรียกใช้ตอนเปิดหน้าเว็บ และเมื่อมีการเปลี่ยนขนาดหน้าจอ (หมุนเครื่อง)
+        window.addEventListener('resize', resizeIframe);
+        resizeIframe(); // เรียกทำงานครั้งแรกทันที
+
         // ฟังก์ชันสำหรับซ่อนหน้าจอโหลด
         function hideLoader() {
             const loader = document.getElementById('loader');
@@ -191,16 +198,6 @@
         setTimeout(hideLoader, 12000); 
 
         iframe.src = iframeSrc;
-
-        // สั่งให้ทำงานตอนเปิดเว็บครั้งแรก
-        resizeIframe();
-
-        // สั่งให้ทำงานทุกครั้งที่มีการหมุนจอ หรือซ่อน/โชว์ Address bar
-        window.addEventListener('resize', resizeIframe);
-        // สำหรับ iOS ป้องกันบั๊กตอนสลับแอป
-        window.addEventListener('orientationchange', function() {
-            setTimeout(resizeIframe, 100);
-        });
 
     </script>
 </body>
