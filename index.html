@@ -134,14 +134,15 @@
             height: 100%; 
             border: none;
             box-sizing: border-box;
-            /* 🌟 ปรับให้โปร่งใส เพื่อให้ขอบบน(รอยบาก) และขอบล่าง เป็นสีน้ำเงินเข้มเหมือนกันทั้งหมด */
             background-color: transparent; 
             
-            /* ป้องกันรอยบาก (Notch) และขอบมนของ iPhone ทับเนื้อหาใน iframe */
+            /* เว้นพื้นที่แค่ด้านบน (สำหรับรอยบาก iPhone) ซ้าย และขวา */
             padding-top: env(safe-area-inset-top);
-            padding-bottom: env(safe-area-inset-bottom);
             padding-left: env(safe-area-inset-left);
             padding-right: env(safe-area-inset-right);
+            
+            /* 🌟 บังคับไม่ให้เว้นขอบล่าง ปล่อยให้ iframe ทะลุลงไปสุดหน้าจอ 🌟 */
+            padding-bottom: 0; 
         }
     </style>
 </head>
@@ -165,7 +166,7 @@
 
     <script>
         // URL ของ App Script
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzuAoteT9I7knF_PwtVNmlwKM5v0ultveceBmgSLikbqge1VWrWhALllbJP-U9Bs0yJZg/exec';
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwXIiCvvcmHsW6Wvn7UXt6iKZhVy7oYGy3zu4q7oCR7uiudRysUhX5PKe2QhNvwbUdN/exec';
 
         const iframe = document.getElementById('app-iframe');
         const params = window.location.search;
@@ -191,8 +192,6 @@
 
         iframe.src = iframeSrc;
 
-        // ไม่ต้องใช้ Javascript คำนวณความสูง (resizeIframe) อีกต่อไป 
-        // เพราะเราปล่อยให้ CSS 100dvh จัดการให้แทน ซึ่งเสถียรกว่ามากบน iOS
     </script>
 </body>
 </html>
