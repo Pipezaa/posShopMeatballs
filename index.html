@@ -8,13 +8,14 @@
     <!-- Viewport สำหรับ PWA และรองรับ Notch (รอยบาก) -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
-    <title>POS System Meetball</title>
+    <title>POS System Chaisiri</title>
 
     <!-- PWA & Mobile Meta Tags -->
-    <meta name="theme-color" content="#f4f7f6">
+    <!-- ปรับ theme-color ให้ตรงกับสีแถบด้านบนของแอป (สีน้ำเงินเข้ม) เพื่อความกลมกลืน -->
+    <meta name="theme-color" content="#212c3b">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <!-- เปลี่ยนจาก black-translucent เป็น default หรือ black เพื่อไม่ให้หน้าเว็บไหลเข้าไปใต้ Status Bar มากเกินไปจนเพี้ยน -->
+    <!-- ใช้ black-translucent เพื่อให้แอปดูเต็มจอและกลืนกับสีพื้นหลังมากที่สุด -->
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"> 
     <meta name="apple-mobile-web-app-title" content="POS Chaisiri">
     
@@ -32,55 +33,104 @@
             margin: 0;
             padding: 0;
             width: 100%;
-            height: 100%;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
+            /* ใช้ dvh เพื่อปรับขนาดตาม Address bar ของมือถือแบบไดนามิก */
+            height: 100dvh; 
+            /* Fallback สำหรับ iOS เวอร์ชั่นเก่าๆ */
+            min-height: -webkit-fill-available;
+            
+            /* เปลี่ยนสีพื้นหลังให้กลืนกับแถบด้านบนของแอป (สีน้ำเงินเข้ม) */
+            background-color: #212c3b; 
             overflow: hidden; /* ล็อคไม่ให้ดึงหน้าเว็บหลักได้ */
-            position: fixed; /* ช่วยแก้บั๊กการเลื่อนบางประการบน iOS */
+            
+            /* ป้องกันการเด้ง (Rubber-band effect) บน iOS ให้เหมือนแอป Native */
+            overscroll-behavior: none;
+            touch-action: none;
         }
 
-        /* ขึง iframe ให้เต็มหน้าจอแบบแน่นอน */
-        iframe {
-            position: absolute;
+        /* หน้าจอโหลดดิ้ง (Splash Screen) ปิดบังจังหวะที่ App Script กำลังโหลด */
+        #loader {
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
-            height: 100%; /* จะถูกควบคุมด้วย JavaScript อีกทีเพื่อความชัวร์ */
+            height: 100%;
+            background-color: #212c3b; /* สีเดียวกับธีม */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: opacity 0.5s ease;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-top: 4px solid #ffffff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* ขึง iframe ให้เต็มหน้าจอ */
+        iframe {
+            display: block;
+            width: 100%;
+            height: 100%; 
             border: none;
             box-sizing: border-box;
-            background-color: transparent;
+            background-color: #f4f7f6; /* สีพื้นหลังเดิมของแอปลงมาไว้ที่นี่แทน */
+            
+            /* ป้องกันรอยบาก (Notch) และขอบมนของ iPhone ทับเนื้อหาใน iframe */
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
         }
     </style>
 </head>
 <body>
+
+    <!-- เพิ่ม Loading Screen เข้ามา -->
+    <div id="loader">
+        <div class="spinner"></div>
+        <div>กำลังโหลดระบบ...</div>
+    </div>
 
     <!-- iframe ที่จะใช้ฝัง App Script ของเรา -->
     <iframe id="app-iframe" src="" allow="camera; microphone; display-capture; clipboard-read; clipboard-write; geolocation" allowfullscreen></iframe>
 
     <script>
         // URL ของ App Script
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwXIiCvvcmHsW6Wvn7UXt6iKZhVy7oYGy3zu4q7oCR7uiudRysUhX5PKe2QhNvwbUdN/exec';
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzuAoteT9I7knF_PwtVNmlwKM5v0ultveceBmgSLikbqge1VWrWhALllbJP-U9Bs0yJZg/exec';
 
         const iframe = document.getElementById('app-iframe');
         const params = window.location.search;
         const iframeSrc = APPS_SCRIPT_URL + params;
+        
+        // เมื่อ iframe โหลด App Script เสร็จสมบูรณ์ ให้ซ่อนหน้าจอ Loading
+        iframe.onload = function() {
+            const loader = document.getElementById('loader');
+            if (loader) {
+                loader.style.opacity = '0'; // ค่อยๆ จางหายไป
+                setTimeout(() => {
+                    loader.style.display = 'none'; // เอาออกจากหน้าจอหลังจาก 0.5 วินาที
+                }, 500);
+            }
+        };
+
         iframe.src = iframeSrc;
 
-        // ฟังก์ชันสำคัญ: ปรับความสูงของ iframe ให้เท่ากับพื้นที่ที่มองเห็นได้จริงๆ (แก้ปัญหาโดนบัง/แถบล่างหาย)
-        function resizeIframe() {
-            iframe.style.height = window.innerHeight + 'px';
-        }
-
-        // สั่งให้ทำงานตอนเปิดเว็บครั้งแรก
-        resizeIframe();
-
-        // สั่งให้ทำงานทุกครั้งที่มีการหมุนจอ หรือซ่อน/โชว์ Address bar
-        window.addEventListener('resize', resizeIframe);
-        // สำหรับ iOS ป้องกันบั๊กตอนสลับแอป
-        window.addEventListener('orientationchange', function() {
-            setTimeout(resizeIframe, 100);
-        });
-
+        // ไม่ต้องใช้ Javascript คำนวณความสูง (resizeIframe) อีกต่อไป 
+        // เพราะเราปล่อยให้ CSS 100dvh จัดการให้แทน ซึ่งเสถียรกว่ามากบน iOS
     </script>
 </body>
 </html>
