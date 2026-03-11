@@ -159,7 +159,8 @@
 
         // ฟังก์ชันสำคัญ: ปรับความสูงของ iframe ให้เท่ากับพื้นที่ที่มองเห็นได้จริงๆ (แก้ปัญหาโดนบัง/แถบล่างหาย)
         function resizeIframe() {
-            iframe.style.height = cal(window.innerHeight + env(safe-area-inset-top)) + 'px';
+            // Wrap the expression in a template literal to pass it as a CSS string
+            iframe.style.height = `calc(${window.innerHeight}px + env(safe-area-inset-top))`;
         }
 
         // สั่งให้ทำงานตอนเปิดเว็บครั้งแรก
