@@ -20,7 +20,26 @@
 
     <!-- Manifest -->
     <link rel="manifest" href="manifest.json">
+    
+    <!-- Load Scanner Library on Top Level -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
 
+    <style>
+        /* UI สำหรับกล้องสแกนบน GitHub */
+        #scanner-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); 
+            z-index: 10001; flex-direction: column; align-items: center; justify-content: center; color: white;
+        }
+        #qr-reader { 
+            width: 90%; max-width: 450px; background: white; border-radius: 15px; overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        .close-scanner {
+            margin-top: 25px; padding: 12px 35px; border-radius: 30px; border: none; 
+            background: #ff4757; color: white; font-weight: bold; cursor: pointer;
+        }
+    </style>
+    
     <style>
         /* รีเซ็ตค่าและล็อคการเลื่อนหน้าจอหลัก */
         /* 1. Reset & Base Styles */
@@ -136,6 +155,12 @@
         </div>
         <div class="loading-text">กำลังโหลดระบบ...</div>
     </div>
+
+    <!-- พื้นที่สำหรับกล้องสแกน -->
+    <div id="scanner-overlay">
+        <div id="qr-reader"></div>
+        <button class="close-scanner" onclick="stopExternalScanner()">ยกเลิก / ปิดกล้อง</button>
+    </div>
     
     <!-- iframe ที่จะใช้ฝัง App Script ของเรา -->
     <iframe id="app-iframe" src="" allow="camera; microphone; display-capture; clipboard-read; clipboard-write; geolocation" allowfullscreen></iframe>
@@ -184,6 +209,49 @@
                     .catch(err => { console.log('Service Worker registration failed: ', err); });
             });
         }
+
+        // --- ระบบสแกนบาร์โค้ดส่งข้าม Iframe ---
+        let html5QrCode;
+        function stopExternalScanner() {
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    document.getElementById('scanner-overlay').style.display = 'none';
+                }).catch(() => {
+                    document.getElementById('scanner-overlay').style.display = 'none';
+                });
+            } else {
+                document.getElementById('scanner-overlay').style.display = 'none';
+            }
+        }
+
+        // ฟังคำสั่งจาก App Script ใน Iframe
+        window.addEventListener('message', function(event) {
+            // ตรวจสอบความปลอดภัย (ควรเช็ค origin ถ้าเป็นไปได้)
+            if (event.data.type === 'START_EXTERNAL_SCAN') {
+                const targetInputId = event.data.targetId;
+                document.getElementById('scanner-overlay').style.display = 'flex';
+                
+                html5QrCode = new Html5Qrcode("qr-reader");
+                html5QrCode.start(
+                    { facingMode: "environment" }, 
+                    { fps: 10, qrbox: { width: 250, height: 250 } },
+                    (decodedText) => {
+                        // ส่งผลลัพธ์กลับเข้าไปใน Iframe
+                        iframe.contentWindow.postMessage({
+                            type: 'EXTERNAL_SCAN_SUCCESS',
+                            code: decodedText,
+                            targetId: targetInputId
+                        }, '*');
+                        stopExternalScanner();
+                    },
+                    (errorMessage) => { /* scanning... */ }
+                ).catch(err => {
+                    alert("ไม่สามารถเข้าถึงกล้องได้: " + err);
+                    stopExternalScanner();
+                });
+            }
+        });
+        
     </script>
 </body>
 </html>
