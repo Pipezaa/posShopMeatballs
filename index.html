@@ -213,7 +213,7 @@
 
         // --- ระบบสแกนบาร์โค้ดส่งข้าม Iframe ---
         let html5QrCode;
-        let externalScanCallback = null;  // ✅ Store callback from iframe
+        let externalScanCallback = null;  // ✅ Declare this BEFORE using it
         
         function stopExternalScanner() {
             if (html5QrCode) {
