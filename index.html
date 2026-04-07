@@ -239,7 +239,7 @@
                         // ส่งผลลัพธ์กลับเข้าไปใน Iframe
                         iframe.contentWindow.postMessage({
                             type: 'EXTERNAL_SCAN_SUCCESS',
-                            code: decodedText,
+                            code: String(decodedText).trim(),
                             targetId: targetInputId
                         }, '*');
                         stopExternalScanner();
