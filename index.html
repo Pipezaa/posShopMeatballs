@@ -213,6 +213,7 @@
 
         // --- ระบบสแกนบาร์โค้ดส่งข้าม Iframe ---
         let html5QrCode;
+        let externalScanCallback = null;  // ✅ Store callback from iframe
         
         function stopExternalScanner() {
             if (html5QrCode) {
@@ -226,47 +227,45 @@
             }
         }
 
-        // ✅ ฟังคำสั่งจาก App Script ใน Iframe
-        window.addEventListener('message', function(event) {
-            if (event.data && event.data.type === 'START_EXTERNAL_SCAN') {
-                const targetInputId = event.data.targetId;
-                console.log('[GitHub Scanner] 📍 Received scan request for:', targetInputId);
-                console.log('[GitHub Scanner] From origin:', event.origin);
-                document.getElementById('scanner-overlay').style.display = 'flex';
-                
-                html5QrCode = new Html5Qrcode("qr-reader");
-                html5QrCode.start(
-                    { facingMode: "environment" }, 
-                    { fps: 10, qrbox: { width: 250, height: 250 } },
-                    (decodedText) => {
-                        console.log('[GitHub Scanner] ✅ QR scanned:', decodedText);
-                        console.log('[GitHub Scanner] ✅ Sending back to iframe with wildcard...');
-                        
-                        // ✅ ส่งกลับ using wildcard '*' เสมอ
-                        iframe.contentWindow.postMessage({
-                            type: 'EXTERNAL_SCAN_SUCCESS',
-                            code: String(decodedText).trim(),
-                            targetId: targetInputId
-                        }, '*');
-                        
-                        // Visual feedback
-                        const qrReader = document.getElementById('qr-reader');
-                        const originalBg = qrReader.style.backgroundColor;
-                        qrReader.style.backgroundColor = '#4CAF50';
-                        setTimeout(() => {
-                            qrReader.style.backgroundColor = originalBg;
-                        }, 300);
-                    },
-                    (errorMessage) => { 
-                        // scanning... suppress logs
+        // ✅ Global function ให้ iframe เรียกมา (ไม่ใช่ postMessage)
+        window.startExternalScanner = function(callback) {
+            console.log('[GitHub Parent] ✅ startExternalScanner called from iframe');
+            externalScanCallback = callback;  // ✅ เก็บ callback ไว้
+            document.getElementById('scanner-overlay').style.display = 'flex';
+            
+            html5QrCode = new Html5Qrcode("qr-reader");
+            html5QrCode.start(
+                { facingMode: "environment" }, 
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                (decodedText) => {
+                    console.log('[GitHub Parent] ✅ QR scanned:', decodedText);
+                    
+                    // ✅ เรียก callback ที่ได้มาจาก iframe โดยตรง (ไม่ใช่ postMessage)
+                    if (typeof externalScanCallback === 'function') {
+                        try {
+                            externalScanCallback(String(decodedText).trim());
+                            console.log('[GitHub Parent] ✅ Callback executed successfully');
+                        } catch (err) {
+                            console.error('[GitHub Parent] ❌ Callback error:', err);
+                        }
                     }
-                ).catch(err => {
-                    console.error('[GitHub Scanner] Camera error:', err);
-                    alert("ไม่สามารถเข้าถึงกล้องได้: " + err);
-                    stopExternalScanner();
-                });
-            }
-        });
+                    
+                    // Visual feedback - keep overlay open for continuous scanning
+                    const qrReader = document.getElementById('qr-reader');
+                    const originalBg = qrReader.style.backgroundColor;
+                    qrReader.style.backgroundColor = '#4CAF50';
+                    setTimeout(() => {
+                        qrReader.style.backgroundColor = originalBg;
+                    }, 300);
+                },
+                (errorMessage) => { /* scanning... */ }
+            ).catch(err => {
+                console.error('[GitHub Parent] Camera error:', err);
+                stopExternalScanner();
+            });
+            
+            return true;
+        };
         
     </script>
 </body>
