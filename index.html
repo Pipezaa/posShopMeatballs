@@ -142,6 +142,7 @@
             /* padding-right: env(safe-area-inset-right); */
             
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            z-index: 1;
         }
     </style>
 </head>
@@ -224,11 +225,50 @@
             }
         }
 
+        // ✅ Global function for SPAs to trigger external scanner
+        window.triggerExternalScanner = function(targetInputId) {
+          console.log('[Parent] triggerExternalScanner called for:', targetInputId);
+          // Request scan - the message handler below will respond with results
+          document.getElementById('scanner-overlay').style.display = 'flex';
+          
+          html5QrCode = new Html5Qrcode("qr-reader");
+          html5QrCode.start(
+              { facingMode: "environment" }, 
+              { fps: 10, qrbox: { width: 250, height: 250 } },
+              (decodedText) => {
+                  console.log('[Parent] ✅ QR scanned:', decodedText);
+                  // Send to all iframes
+                  if (iframe && iframe.contentWindow) {
+                      iframe.contentWindow.postMessage({
+                          type: 'EXTERNAL_SCAN_SUCCESS',
+                          code: String(decodedText).trim(),
+                          targetId: targetInputId
+                      }, '*');
+                  }
+                  
+                  // Visual feedback - keep overlay open for continuous scanning
+                  const qrReader = document.getElementById('qr-reader');
+                  const originalBg = qrReader.style.backgroundColor;
+                  qrReader.style.backgroundColor = '#4CAF50';
+                  setTimeout(() => {
+                      qrReader.style.backgroundColor = originalBg;
+                  }, 300);
+              },
+              (errorMessage) => { /* scanning... */ }
+          ).catch(err => {
+              console.error('[Parent] Camera error:', err);
+              stopExternalScanner();
+          });
+          
+          return true;
+        };
+        
         // ฟังคำสั่งจาก App Script ใน Iframe
         window.addEventListener('message', function(event) {
             // ตรวจสอบความปลอดภัย (ควรเช็ค origin ถ้าเป็นไปได้)
             if (event.data.type === 'START_EXTERNAL_SCAN') {
                 const targetInputId = event.data.targetId;
+                console.log('[GitHub Scanner] Opening scanner for target:', targetInputId);
                 document.getElementById('scanner-overlay').style.display = 'flex';
                 
                 html5QrCode = new Html5Qrcode("qr-reader");
@@ -236,16 +276,30 @@
                     { facingMode: "environment" }, 
                     { fps: 10, qrbox: { width: 250, height: 250 } },
                     (decodedText) => {
+                        console.log('[GitHub Scanner] ✅ QR scanned:', decodedText);
                         // ส่งผลลัพธ์กลับเข้าไปใน Iframe
                         iframe.contentWindow.postMessage({
                             type: 'EXTERNAL_SCAN_SUCCESS',
                             code: String(decodedText).trim(),
                             targetId: targetInputId
                         }, '*');
-                        stopExternalScanner();
+                        
+                        // ❌ ไม่ปิด overlay ทันที - ให้ user สแกนต่อเนื่องได้
+                        // ✅ เพิ่ม visual feedback แทน
+                        const qrReader = document.getElementById('qr-reader');
+                        const originalBg = qrReader.style.backgroundColor;
+                        qrReader.style.backgroundColor = '#4CAF50';
+                        setTimeout(() => {
+                            qrReader.style.backgroundColor = originalBg;
+                        }, 300);
+                        
+                        console.log('[GitHub Scanner] Overlay still open for continuous scanning');
                     },
-                    (errorMessage) => { /* scanning... */ }
+                    (errorMessage) => { 
+                        // scanning... suppress logs
+                    }
                 ).catch(err => {
+                    console.error('[GitHub Scanner] Camera error:', err);
                     alert("ไม่สามารถเข้าถึงกล้องได้: " + err);
                     stopExternalScanner();
                 });
