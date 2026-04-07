@@ -196,8 +196,19 @@
             }
         }
 
-        // 1. เมื่อ iframe โหลด App Script เสร็จสมบูรณ์ ให้ซ่อนหน้าจอ Loading
-        iframe.onload = hideLoader;
+        // 1. เมื่อ iframe โหลด App Script เสร็จสมบูรณ์ให้ซ่อนหน้าจอ Loading
+        iframe.onload = function() {
+            hideLoader();
+            
+            // ✅ ส่งบอก iframe ว่า parent origin คือไร (เพื่อ postMessage ได้ถูกต้อง)
+            setTimeout(() => {
+                console.log('[GitHub Parent] 📤 Sending parent origin to iframe...');
+                iframe.contentWindow.postMessage({
+                    type: 'PARENT_ORIGIN_INFO',
+                    origin: window.location.origin
+                }, '*');
+            }, 500);
+        };
 
         // 2. ระบบกันค้าง (Fallback Timeout)
         setTimeout(hideLoader, 12000); 
@@ -213,6 +224,8 @@
 
         // --- ระบบสแกนบาร์โค้ดส่งข้าม Iframe ---
         let html5QrCode;
+        let gasIframeOrigin = null;  // ✅ เก็บ origin ของ GAS iframe
+        
         function stopExternalScanner() {
             if (html5QrCode) {
                 html5QrCode.stop().then(() => {
@@ -225,10 +238,17 @@
             }
         }
 
+        // ✅ ฟังเพื่อจำ origin ของ GAS iframe ตอนมันส่ง START_EXTERNAL_SCAN มา
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'START_EXTERNAL_SCAN') {
+                gasIframeOrigin = event.origin;  // ✅ เก็บ origin นี้ไว้
+                console.log('[GitHub Parent] 📍 Detected GAS iframe origin:', event.origin);
+            }
+        });
+
         // ✅ Global function for SPAs to trigger external scanner
         window.triggerExternalScanner = function(targetInputId) {
           console.log('[Parent] triggerExternalScanner called for:', targetInputId);
-          // Request scan - the message handler below will respond with results
           document.getElementById('scanner-overlay').style.display = 'flex';
           
           html5QrCode = new Html5Qrcode("qr-reader");
@@ -237,16 +257,16 @@
               { fps: 10, qrbox: { width: 250, height: 250 } },
               (decodedText) => {
                   console.log('[Parent] ✅ QR scanned:', decodedText);
-                  // Send to all iframes
-                  if (iframe && iframe.contentWindow) {
+                  // Send to iframe using detected origin
+                  if (iframe && iframe.contentWindow && gasIframeOrigin) {
                       iframe.contentWindow.postMessage({
                           type: 'EXTERNAL_SCAN_SUCCESS',
                           code: String(decodedText).trim(),
                           targetId: targetInputId
-                      }, '*');
+                      }, gasIframeOrigin);  // ✅ ใช้ specific origin แทน '*'
                   }
                   
-                  // Visual feedback - keep overlay open for continuous scanning
+                  // Visual feedback
                   const qrReader = document.getElementById('qr-reader');
                   const originalBg = qrReader.style.backgroundColor;
                   qrReader.style.backgroundColor = '#4CAF50';
@@ -265,10 +285,11 @@
         
         // ฟังคำสั่งจาก App Script ใน Iframe
         window.addEventListener('message', function(event) {
-            // ตรวจสอบความปลอดภัย (ควรเช็ค origin ถ้าเป็นไปได้)
-            if (event.data.type === 'START_EXTERNAL_SCAN') {
+            if (event.data && event.data.type === 'START_EXTERNAL_SCAN') {
+                gasIframeOrigin = event.origin;  // ✅ บันทึก origin ทุกครั้ง
                 const targetInputId = event.data.targetId;
-                console.log('[GitHub Scanner] Opening scanner for target:', targetInputId);
+                console.log('[GitHub Scanner] 📍 Opening scanner from origin:', event.origin);
+                console.log('[GitHub Scanner] Target input:', targetInputId);
                 document.getElementById('scanner-overlay').style.display = 'flex';
                 
                 html5QrCode = new Html5Qrcode("qr-reader");
@@ -277,23 +298,22 @@
                     { fps: 10, qrbox: { width: 250, height: 250 } },
                     (decodedText) => {
                         console.log('[GitHub Scanner] ✅ QR scanned:', decodedText);
-                        // ส่งผลลัพธ์กลับเข้าไปใน Iframe
+                        // ✅ ส่งกลับ using specific origin
                         iframe.contentWindow.postMessage({
                             type: 'EXTERNAL_SCAN_SUCCESS',
                             code: String(decodedText).trim(),
                             targetId: targetInputId
-                        }, '*');
+                        }, event.origin);  // ✅ ใช้ origin เดียวกับที่ได้มา
                         
-                        // ❌ ไม่ปิด overlay ทันที - ให้ user สแกนต่อเนื่องได้
-                        // ✅ เพิ่ม visual feedback แทน
+                        console.log('[GitHub Scanner] ✅ Message sent to origin:', event.origin);
+                        
+                        // Visual feedback
                         const qrReader = document.getElementById('qr-reader');
                         const originalBg = qrReader.style.backgroundColor;
                         qrReader.style.backgroundColor = '#4CAF50';
                         setTimeout(() => {
                             qrReader.style.backgroundColor = originalBg;
                         }, 300);
-                        
-                        console.log('[GitHub Scanner] Overlay still open for continuous scanning');
                     },
                     (errorMessage) => { 
                         // scanning... suppress logs
